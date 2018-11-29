@@ -5,6 +5,7 @@
 
 #pragma once
 
+#define _CRT_SECURE_NO_WARNINGS
 #ifndef VC_EXTRALEAN
 #define VC_EXTRALEAN            // 从 Windows 头中排除极少使用的资料
 #endif
@@ -33,11 +34,9 @@
 #include <afxcontrolbars.h>     // 功能区和控件条的 MFC 支持
 
 
-
-
-
-
-
+#include <iostream>
+#include <string>
+#include <regex>
 
 
 #ifdef _UNICODE
@@ -51,3 +50,25 @@
 #endif
 
 
+extern "C" {
+	#define CURL_STATICLIB
+	#pragma comment(lib, "ws2_32.lib")
+	#pragma comment(lib, "wldap32.lib")
+	#pragma comment(lib, "crypt32.lib")
+	#ifdef WIN32 // Windows 平台
+		#include "libcurl/curl.h"
+	#else // Unix Like or other platforms
+		#include <curl/curl.h>
+		#include <iconv.h>
+		#include <unistd.h>
+	#endif
+	#ifdef _WIN64 // Windows amd64(x86-64) 平台
+		#pragma comment(lib, "libcurl/zlib_a_x64.lib")
+		#pragma comment(lib, "libcurl/libcurl_x64.lib")
+	#else
+		#ifdef _WIN32 // Windows x86 平台
+			#pragma comment(lib, "libcurl/zlib_a_x86.lib")
+			#pragma comment(lib, "libcurl/libcurl_x86.lib")
+		#endif
+	#endif
+}
