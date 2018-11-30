@@ -38,6 +38,9 @@
 #include <string>
 #include <regex>
 
+// 调试开关 注释掉即为发布版
+// #define __IEDON_DEBUG__  
+
 
 #ifdef _UNICODE
 #if defined _M_IX86

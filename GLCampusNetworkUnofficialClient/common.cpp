@@ -1,5 +1,111 @@
 #include "stdafx.h"
 #include "common.h"
+
+#ifdef __IEDON_DEBUG__
+// 测试用例
+const char *FUCK = "\
+<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\"> \
+<html xmlns=\"http://www.w3.org/1999/xhtml\"> \
+<head> \
+<meta http-equiv=\"Content-Type\" content=\"text/html; charset=gb2312\">\
+<meta id=\"viewport\" name=\"viewport\" content=\"target-densitydpi=device-dpi,width=640px,user-scalable=1\">\
+<meta http-equiv=\"X-UA-Compatible\" content=\"IE=9; IE=8; IE=7; IE=EDGE\">\
+<title></title> \
+<!--Dr.COMWebLoginID_0.htm-->\
+<link rel=\"stylesheet\" type=\"text/css\" href=\"b82.css\" /><!--bootstrap.min.css-->\
+\
+<script type=\"text/javascript\" src=\"a42.js\"></script><!--jquery1.11.3.min.js-->\
+\
+<script>\
+document.write('<script language=javascript src=\"a41.js?version=1.4_'+(new Date()).valueOf()+'\"><\/script>');\
+document.write('<script language=javascript src=\"'+window.location.protocol + '//' + window.location.hostname + ':801/eportal/extern/0115/config.js?version=1.4_'+(new Date()).valueOf()+'\"><\/script>');\
+</script>\
+\
+<script type=\"text/javascript\">\
+sv=0;sv1=0;v6='http://[::]:9002/v6                                     ';myv6ip='                                       ';v4serip='10.0.98.1'      ;m46=0;v46ip='10.201.229.2'                           ;\
+vid=0   ;mip=010201229002;Gno=0000;vlanid=\"0\"   ;AC=\"\";                          ipm=\"0a006201\";ss1=\"0010f3644146\";ss2=\"0000\";ss3=\"0ac9e502\";ss4=\"000000000000\";ss5=\"10.201.229.2\"   ;ss6=\"10.0.98.1\"      ;timet=1543567030; \
+osele=0;//1=不弹窗\
+domain='[::]';// ////////////////////////////////////////\
+\
+/** 哆点参数 start */\
+//1.基本参数\
+portalid='';//门户ID\
+portalname='';//门户名称\
+//2.可选参数\
+portalver='';//门户版本\
+serialno='';//序列号\
+logourl='';//门户logo\
+bannerurl='';//横幅广告\
+welcome='';//欢迎词\
+businessurl='';//业务接口\
+//3.旁路参数\
+authexenable='0';//是否启用旁路扩展模式\
+authtype=1;//登录协议\
+authloginIP='';//登录IP\
+authloginport=801;//登录端口\
+authloginpath='/eportal/?c=ACSetting&a=Login';//登录路径\
+authloginparam=''; //登录参数\
+authuserfield='DDDDD';//账号节点\
+authpassfield='upass';//密码节点\
+terminalidentity=1;//终端识别标识 先配置成填写\
+authlogouttype=1;//注销协议\
+authlogoutIP='';//注销IP\
+authlogoutport=80;//注销端口\
+authlogoutpath='/eportal/?c=ACSetting&a=Logout&ver=1.0';//注销路径\
+authlogoutparam='';//注销参数\
+authlogoutpost='';//注销post参数\
+querydelay=0;//登录后延时查询网络状态\
+querytype=1;//状态查询协议\
+queryIP='';//状态查询IP	\
+queryport=80;//状态查询端口\
+querypost='';//状态查询post参数\
+querypath='/eportal/?c=ACSetting&a=Query';//状态查询路径\
+queryparam='';//状态查询参数\
+authsuccess='Dr.COMWebLoginID_3.htm';//登录成功标志\
+authfail='Dr.COMWebLoginID_2.htm';//登录失败标志\
+isquery=0;\
+authhost='';\
+authoffpost='';\
+charset='gb2312';//页面编码\
+exparam=0;//扩展标志位\
+//4.运营商选择\
+carrier='{\"yys\":{\"title\":\"服务类型\",\"mode\":\"radiobutton\",\"data\":[{\"id\":\"1\",\"name\":\"校园用户\",\"suffix\":\"@xyw\"},{\"id\":\"2\",\"name\":\"校园电信\",\"suffix\":\"@dx\"},{\"id\":\"3\",\"name\":\"校园联通\",\"suffix\":\"@lt\"},{\"id\":\"4\",\"name\":\"校园其他\",\"suffix\":\"\"}],\"defaultID\":\"1\"}}';//运营商选择\
+//5.限制非哆点客户端登陆\
+//把原先Dr.COMWebLoginID_ 改成: Dr.COM1.0WebLoginID_\
+/** 哆点参数 end */\
+\
+var programUrl = window.location.protocol + \"//\" + window.location.hostname + \":801/eportal/extern/0115/\";\
+newComm.setArgsCookies(programUrl,vlanid,ss5);\
+\
+// 访问设备:0-其他；1-PC；2-手机；3-平板\
+var iTermType = normalFun.getTermType();\
+if(iTermType==2){\
+    newComm.setNessArg('mobile_79');\
+}else{\
+    newComm.setNessArg('pc_79');\
+}\
+newComm.setNessJs();\
+\
+//广告统计设置\
+static_mark=\"000000\";\
+slider_mark=\"000000\";\
+\
+hnaSetAdCount('1008', ss4, '', ss5, ss4);\
+\
+</script>\
+\
+</head>\
+\
+<body>\
+</body>\
+</html>\
+<script type=\"text/javascript\">\
+$(function(){\
+    newComm.setNessSett();\
+});\
+</script>";
+#endif
+
 /*
 	BASE64 编码
 */
@@ -180,6 +286,31 @@ std::string _URLFIND(const std::string & url, const char *name)
 	else
 	{
 		ret = url.substr(pos1 + len, pos2 - pos1 - len);
+	}
+	return ret;
+}
+
+// 获取 COOKIE 中的内容
+std::string _COOKIE(const std::string & cookie, const char *name)
+{
+	std::string var(name);
+	var.append("=");
+	size_t len = var.length();
+	std::string ret;
+
+	size_t pos1 = cookie.find(var);
+	size_t pos2 = cookie.find(";", pos1 + len);
+	if (pos1 == std::string::npos)
+	{
+		return ret;
+	}
+	if (pos2 == std::string::npos)
+	{
+		ret = cookie.substr(pos1 + len, cookie.length() - pos1 - len);
+	}
+	else
+	{
+		ret = cookie.substr(pos1 + len, pos2 - pos1 - len);
 	}
 	return ret;
 }

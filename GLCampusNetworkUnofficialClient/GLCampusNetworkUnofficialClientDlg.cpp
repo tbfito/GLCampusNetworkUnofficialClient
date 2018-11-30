@@ -1,5 +1,8 @@
-﻿// GLCampusNetworkUnofficialClientDlg.cpp: 实现文件
-//
+﻿/************************************/
+/******  iEdon GLCNUC Project  ******/
+/** A suck code for Campus Network **/
+/************************************/
+/************************************/
 
 #include "stdafx.h"
 #include "GLCampusNetworkUnofficialClient.h"
@@ -7,7 +10,6 @@
 #include "afxdialogex.h"
 #include "common.h"
 #include "CCurlTask.h"
-#include <regex>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -67,11 +69,13 @@ BEGIN_MESSAGE_MAP(CGLCampusNetworkUnofficialClientDlg, CDialogEx)
 	ON_MESSAGE(WM_SHOWTRAY, OnShowTray) // 托盘消息映射
 	ON_WM_SIZE()
 	ON_WM_DESTROY()
+	ON_WM_CLOSE()
 	ON_BN_CLICKED(IDOK, &CGLCampusNetworkUnofficialClientDlg::OnBnClickedOk)
 	ON_BN_CLICKED(IDCANCEL, &CGLCampusNetworkUnofficialClientDlg::OnBnClickedCancel)
 	ON_BN_CLICKED(IDC_CHECK1, &CGLCampusNetworkUnofficialClientDlg::OnIdcEdit1Click)
 	ON_BN_CLICKED(IDC_CHECK2, &CGLCampusNetworkUnofficialClientDlg::OnIdcEdit2Click)
 	ON_BN_CLICKED(IDC_CHECK3, &CGLCampusNetworkUnofficialClientDlg::OnIdcEdit3Click)
+	ON_BN_CLICKED(IDLOGOUT, &CGLCampusNetworkUnofficialClientDlg::OnBnClickedLogout)
 END_MESSAGE_MAP()
 
 // CGLCampusNetworkUnofficialClientDlg 消息处理程序
@@ -253,18 +257,20 @@ void CGLCampusNetworkUnofficialClientDlg::OnBnClickedOk()
 	HANDLE hThread = (HANDLE)::_beginthreadex(NULL, 0, CGLCampusNetworkUnofficialClientDlg::Login, this, 0, &tid);
 	// 关闭线程句柄以防泄露，因为下面不需要再操作这个线程了
 	::CloseHandle(hThread);
-	
-	// CDialogEx::OnOK();
 }
 
 // 认证上网
 unsigned __stdcall CGLCampusNetworkUnofficialClientDlg::Login(void *pThis)
 {
 	CGLCampusNetworkUnofficialClientDlg *that = static_cast<CGLCampusNetworkUnofficialClientDlg *>(pThis);
-	
-	// 偷个懒
-	#define ENABLE_BUTTON ((CButton*)that->GetDlgItem(IDOK))->EnableWindow(TRUE)
 
+	// 清空列表框
+	that->listBox->ResetContent();
+
+	// 偷个懒
+	#define ENABLE_BUTTON ((CButton*)that->GetDlgItem(IDOK))->EnableWindow(TRUE); ((CButton*)that->GetDlgItem(IDOK))->ShowWindow(TRUE); if (that->hShutdownLogoutThread) { ::CloseHandle(that->hShutdownLogoutThread); that->hShutdownLogoutThread = NULL; }
+	#define BUTTON_ONLINE ((CButton*)that->GetDlgItem(IDOK))->EnableWindow(TRUE); ((CButton*)that->GetDlgItem(IDOK))->ShowWindow(FALSE); ((CButton*)that->GetDlgItem(IDLOGOUT))->ShowWindow(TRUE); ((CEdit*)that->GetDlgItem(IDC_EDIT1))->EnableWindow(FALSE); ((CEdit*)that->GetDlgItem(IDC_EDIT2))->EnableWindow(FALSE); if (that->hShutdownLogoutThread) { ::CloseHandle(that->hShutdownLogoutThread); that->hShutdownLogoutThread = NULL; }
+	
 	that->AddLog(L"正在探测 Portal 服务器...");
 	that->SetStatus(L"正在探测 Portal 服务器...");
 
@@ -273,12 +279,12 @@ unsigned __stdcall CGLCampusNetworkUnofficialClientDlg::Login(void *pThis)
 	CString strHeader(curl.GetHeaderString());
 	CString strMsg(curl.GetResultString());
 
-	if (strMsg.Find(L"网络错误") != -1) { ENABLE_BUTTON; return 0; }
+	if (strMsg.Find(L"网络错误") != -1) { that->AddLog(strMsg); that->SetStatus(L"网络错误"); ENABLE_BUTTON; return 0; }
 	if (strHeader.Find(L"204 No Content") != -1) {
 		that->AddLog(L"网络可达, 无须认证");
 		that->SetStatus(L"已连接上");
 		ENABLE_BUTTON;
-		that->SendTrayMessage(CString(L"网络可达, 无须认证"));
+		that->SendTrayMessage(CString(L"此网络已连接, 无须认证"), L"网络已连接");
 		if (that->bAutoHide) { that->ShowWindow(SW_HIDE); }
 		return 0;
 	}
@@ -287,46 +293,331 @@ unsigned __stdcall CGLCampusNetworkUnofficialClientDlg::Login(void *pThis)
 	// 匹配 Location
 	std::string header(CW2A(strHeader.GetString()));
 	bool bValid = std::regex_search(header, matches, std::regex("[L|l]ocation:(.*)"));
-	//for (size_t i = 0; i < matches.size(); i++) { MessageBoxA(that->m_hWnd, matches[i].str().c_str(), "Info", 64); }
 	if (!bValid || matches.size() != 2) { that->AddLog(L"无法探测 Portal 服务器!"); that->SetStatus(L"发生错误"); ENABLE_BUTTON; return 0; }
 
 	CStringA strPortalURL(matches[1].str().c_str());
 	strPortalURL.Trim();
 	that->AddLog(L"探测到 Portal 地址: " + CString(strPortalURL));
 	if (strPortalURL.Find("://1.1.1.3") != -1) { that->AddLog(L"学校认证机器抽风, 需要等一会(约5-10分钟)..."); that->SetStatus(L"需要等待重试"); ENABLE_BUTTON; return 0; }
-	
+
 	that->SetStatus(L"匹配认证参数...");
 	that->AddLog(L"匹配认证参数...");
-	std::string FUCK("http://10.0.98.1/a79.htm?wlanuserip=10.2.67.115&wlanacname=ME60&wlanparameter=d0-57-7b-f1-1e-54");
-	CStringA strUserIP(_GET(FUCK.c_str()/*matches[1].str()*/, "wlanuserip").c_str());
-	CStringA strAcName(_GET(FUCK.c_str()/*matches[1].str()*/, "wlanacname").c_str());
-	CStringA strUserMac(_GET(FUCK.c_str()/*matches[1].str()*/, "wlanparameter").c_str());
+
+	#ifdef __IEDON_DEBUG__
+		const char *FUCK1 = "http://http://10.0.98.1/a79.htm?wlanuserip=10.2.0.187&wlanacname=ME60&wlanparameter=9c-ad-97-d1-51-11";
+		CStringA strUserIP(_GET(/**/FUCK1/*matches[1].str()*/, "wlanuserip").c_str());
+		CStringA strAcName(_GET(/**/FUCK1/*matches[1].str()*/, "wlanacname").c_str());
+		CStringA strUserMac(_GET(/**/FUCK1/*matches[1].str()*/, "wlanparameter").c_str());
+	#else
+		CStringA strUserIP(_GET(matches[1].str(), "wlanuserip").c_str());
+		CStringA strAcName(_GET(matches[1].str(), "wlanacname").c_str());
+		CStringA strUserMac(_GET(matches[1].str(), "wlanparameter").c_str());
+	#endif
 
 	if (strUserIP.IsEmpty() || strUserMac.IsEmpty()) { that->AddLog(L"无法获取用户网络信息!"); that->SetStatus(L"发生错误"); ENABLE_BUTTON; return 0; }
 
 	that->AddLog(L">> 用户IP: " + CString(strUserIP));
 	that->AddLog(L">> 用户MAC: " + CString(strUserMac));
-	that->AddLog(L">> 认证服务器名: " + CString(strAcName));
+	that->AddLog(L">> 接入控制器: " + CString(strAcName));
 
 	CCurlTask getOptionsReq;
 	getOptionsReq.Exec(strPortalURL);
-	// 匹配 v4serip 也就是认证服务端IP
-	std::string getOptionsRep("<script type='text/javascript'>sv=0;sv1=0;v6='http://[::]:9002/v6';myv6ip='';v4serip='10.0.98.1';m46=0;v46ip='10.201.229.2';vid=0;mip=010201229002;Gno=0000;vlanid='0';AC='';ipm='0a006201';ss1='0010f3644146';s");
-	//std::string getOptionsRep(getOptionsReq.GetResultString().GetString());
-	bValid = std::regex_search(getOptionsRep, matches, std::regex("v4serip='(.*?)'"));
-	if (!bValid || matches.size() != 2) { that->AddLog(L"无法获取认证服务器IP!"); that->SetStatus(L"发生错误"); ENABLE_BUTTON; return 0; }
-	
-	CStringA strAuthIP(matches[1].str().c_str());
-	that->AddLog(L">> 认证服务器IP: " + CString(strAuthIP));
 
-	bValid = std::regex_search(getOptionsRep, matches, std::regex("vlanid='(.*?)'"));
+	// 匹配 v4serip 也就是认证服务端IP
+	#ifdef __IEDON_DEBUG__
+		std::string getOptionsRep(FUCK);
+	#else
+		std::string getOptionsRep(getOptionsReq.GetResultString().GetString());
+	#endif
+
+	bValid = std::regex_search(getOptionsRep, matches, std::regex("v4serip=['|\"](.*?)['|\"]"));
+	if (!bValid || matches.size() != 2) { that->AddLog(L"无法获取入口服务器IP!"); that->SetStatus(L"发生错误"); ENABLE_BUTTON; return 0; }
+
+	CStringA strPortalIP(matches[1].str().c_str());
+	that->AddLog(L">> 入口服务器: " + CString(strPortalIP));
+
+	bValid = std::regex_search(getOptionsRep, matches, std::regex("vlanid=['|\"](.*?)['|\"]"));
 	if (!bValid || matches.size() != 2) { that->AddLog(L"无法获取VLAN ID!"); that->SetStatus(L"发生错误"); ENABLE_BUTTON; return 0; }
 
 	CStringA strVlanId(matches[1].str().c_str());
 	that->AddLog(L">> 认证VLAN: " + CString(strVlanId));
 
-	ENABLE_BUTTON;
-	that->SendTrayMessage(CString(L"网络已经连接成功"));
+	bValid = std::regex_search(getOptionsRep, matches, std::regex("authloginIP=['|\"](.*?)['|\"]"));
+	CStringA strAuthBackendServer, strAuthBackendIP;
+	if (bValid && matches.size() == 2 && matches[1].str().length()) { strAuthBackendServer.Append(matches[1].str().c_str()); } else { strAuthBackendServer.Append(strPortalIP); }
+	strAuthBackendIP.Append(strAuthBackendServer);
+
+	bValid = std::regex_search(getOptionsRep, matches, std::regex("authloginport=(.*?);"));
+	CStringA strAuthLogoutPort; // 为什么是 Logout 呢？因为 authloginport = login + logout's port 鬼畜的Dr.COM。原因见下文
+	if (bValid && matches.size() == 2) {
+		strAuthBackendServer.Append(":");
+		strAuthBackendServer.Append(matches[1].str().c_str()); 
+		strAuthLogoutPort.Append(":");
+		strAuthLogoutPort.Append(matches[1].str().c_str());
+	} else {
+		strAuthBackendServer.Append(":80");
+		strAuthLogoutPort.Append(":80");
+	}
+	
+	that->AddLog(L">> 认证服务器: " + CString(strAuthBackendServer));
+
+	bValid = std::regex_search(getOptionsRep, matches, std::regex("authloginpath=['|\"](.*?)['|\"]"));
+	CStringA strAuthURL("http://");
+	strAuthURL.Append(strAuthBackendServer);
+	if (!bValid || matches.size() != 2) { that->AddLog(L"无法获取验证路径"); that->SetStatus(L"发生错误"); ENABLE_BUTTON; return 0; }
+	strAuthURL.Append(matches[1].str().c_str());
+
+	bValid = std::regex_search(getOptionsRep, matches, std::regex("authloginparam=['|\"](.*?)['|\"]"));
+	if (bValid && matches.size() == 2 && matches[1].str().length()) { strAuthURL.Append("&"); strAuthURL.Append(matches[1].str().c_str()); }
+
+
+	bValid = std::regex_search(getOptionsRep, matches, std::regex("authuserfield=['|\"](.*?)['|\"]"));
+	CStringA strAuthUserNameHtmlField;
+	if (!bValid || matches.size() != 2) { that->AddLog(L"无法获取用户名域"); that->SetStatus(L"发生错误"); ENABLE_BUTTON; return 0; }
+	strAuthUserNameHtmlField.Append(matches[1].str().c_str());
+
+	bValid = std::regex_search(getOptionsRep, matches, std::regex("authpassfield=['|\"](.*?)['|\"]"));
+	CStringA strAuthPasswordHtmlField;
+	if (!bValid || matches.size() != 2) { that->AddLog(L"无法获取密码域"); that->SetStatus(L"发生错误"); ENABLE_BUTTON; return 0; }
+	strAuthPasswordHtmlField.Append(matches[1].str().c_str());
+
+	bValid = std::regex_search(getOptionsRep, matches, std::regex("\/eportal\/extern\/(.*?)\/"));
+	CStringA strProgramId;
+	if (!bValid || matches.size() != 2) { that->AddLog(L"无法获取认证版本"); that->SetStatus(L"发生错误"); ENABLE_BUTTON; return 0; }
+	strProgramId.Append(matches[1].str().c_str());
+	that->AddLog(L">> 认证版本: " + CString(strProgramId));
+	that->AddLog(L">> 认证字段: " + CString(strAuthUserNameHtmlField) + L", " + CString(strAuthPasswordHtmlField));
+
+	///////// 下面是获取断开连接所需要的信息
+	bValid = std::regex_search(getOptionsRep, matches, std::regex("authlogoutIP=['|\"](.*?)['|\"]"));
+	CStringA strAuthBackendServerLogout, strAuthBackendIPLogout;
+	if (bValid && matches.size() == 2 && matches[1].str().length()) { strAuthBackendServerLogout.Append(matches[1].str().c_str()); strAuthBackendIPLogout.Append(matches[1].str().c_str()); } else { strAuthBackendServerLogout.Append(strPortalIP); strAuthBackendIPLogout.Append(strPortalIP); }
+
+	/* 虽然 DR.COM 提供了额 authlogoutport，然而却不用！！！！端口等同于 authloginport  神TMD的鬼畜逻辑
+		bValid = std::regex_search(getOptionsRep, matches, std::regex("authlogoutport=(.*?);"));
+		if (bValid && matches.size() == 2) { strAuthBackendServerLogout.Append(":"); strAuthBackendServerLogout.Append(matches[1].str().c_str()); } else { strAuthBackendServerLogout.Append(":80"); }
+	*/
+	strAuthBackendServerLogout.Append(strAuthLogoutPort); // Dr.COM 式鬼畜
+	bValid = std::regex_search(getOptionsRep, matches, std::regex("authlogoutpath=['|\"](.*?)['|\"]"));
+	CStringA strAuthURLLogout("http://");
+	strAuthURLLogout.Append(strAuthBackendServerLogout);
+	strAuthURLLogout.Append(matches[1].str().c_str());
+
+	bValid = std::regex_search(getOptionsRep, matches, std::regex("authlogoutparam=['|\"](.*?)['|\"]"));
+	if (bValid && matches.size() == 2 && matches[1].str().length()) { strAuthURLLogout.Append("&"); strAuthURLLogout.Append(matches[1].str().c_str()); }
+
+	///////////////////////////
+
+	// iTermType=1 代表平台为PC，可在 a41 等找到
+	// protocol 协议前缀
+	// hostname 认证服务器主机名
+	// wlanuserip/ip 终端IP
+	// wlanacip ACIP
+	// wlanacname AC名
+	that->AddLog(L"构建登录请求...");
+	
+	strAuthURL.Append("&protocol=http:&hostname=" + strAuthBackendIP + "&iTermType=1&wlanuserip=" + strUserIP + "&wlanacip=null&wlanacname=" + strAcName + "&mac=00-00-00-00-00-00&ip=" + strUserIP + "&enAdvert=0&queryACIP=0&loginMethod=1");
+	CStringA strLogoutMac(strUserMac); strLogoutMac.Replace("-", "");
+	that->strLogoutURL = strAuthURLLogout + "&wlanuserip=" + strUserIP + "&wlanacname=" + strAcName + "&port=&hostname=" + strAuthBackendIPLogout + "&iTermType=1&session=&queryACIP=0&mac=" + strLogoutMac + "&wlanacip=";
+	
+	CCurlTask loginReq;
+	CStringA postData, postCookie("program=");
+	postData.Append(strAuthUserNameHtmlField + "=%2C0%2C" + CStringA(that->strId) + "&" + // 用户名
+		strAuthPasswordHtmlField + "=" + CStringA(that->strPassword) + // 密码
+		"&R1=0&R2=0&R3=0&R6=0&para=00&0MKKey=123456&buttonClicked=&redirect_url=&err_flag=&username=&password="); // 杂七杂八
+	postCookie.Append(strProgramId + "; vlan=" + strVlanId + "; ip=" + strUserIP + "; ssid=null; areaID=null; md5_login2=%2C0%2C" + CStringA(that->strId) + "%7C" + CStringA(that->strPassword));
+	that->strCookie = postCookie;
+
+	that->AddLog(L"发送用户名与密码...");
+	loginReq.Exec(strAuthURL, false, postCookie, true, postData);
+
+	std::string strLoginRep(loginReq.GetHeaderString().GetString());
+	bValid = std::regex_search(strLoginRep, matches, std::regex("[L|l]ocation:(.*)"));
+	if (bValid && matches.size() == 2 && matches[1].str().length()) { that->strReferer = CString(matches[1].str().c_str()); that->strReferer.Trim(); }
+
+	CString strLoginMsg(loginReq.GetResultString());
+	std::string strLoginHeader(loginReq.GetHeaderString().GetString());
+
+	if (strLoginMsg.Find(L"网络错误") != -1) { that->AddLog(strLoginMsg); that->SetStatus(L"网络错误"); ENABLE_BUTTON; return 0; }
+	bValid = std::regex_search(strLoginHeader, matches, std::regex("[L|l]ocation:(.*)"));
+	if (!bValid || matches.size() != 2) { that->AddLog(L"无法得到认证结果!"); that->SetStatus(L"发生错误"); ENABLE_BUTTON; return 0; }
+
+	CStringA strAcMessage(_GET(strLoginHeader.c_str(), "ACLogOut").c_str());
+	that->strWlanAcIp = _GET(strLoginHeader.c_str(), "wlanacip").c_str();
+	that->strSessionId = _COOKIE(strLoginHeader.c_str(), "PHPSESSID").c_str();
+	CStringA strRadiusMessage(_GET(strLoginHeader.c_str(), "ErrorMsg").c_str());
+
+	// 粗略“URL解码”
+	strRadiusMessage.Replace("%3D", "="); strRadiusMessage.Replace("%3d", "=");
+	strRadiusMessage.Replace("%2B", "+"); strRadiusMessage.Replace("%2b", "+");
+	strRadiusMessage.Replace("%2F", "/"); strRadiusMessage.Replace("%2f", "/");
+
+	if (strAcMessage.GetLength() == 0 || strAcMessage == "0" /* 二维码扫描终端认证成功 */ || strAcMessage == "1" /* 注销成功 */) {
+
+		strAcMessage = "登录成功!";
+		that->AddLog(CString(strAcMessage));
+		that->SetStatus(L"已连接上");
+		if (that->bAutoHide) { that->ShowWindow(SW_HIDE); }
+
+	} else if (strAcMessage != "5") {
+
+		if (strAcMessage == "2") { strAcMessage = "注销失败"; }
+		if (strAcMessage == "3") { strAcMessage = "访问开户接口失败"; }
+		if (strAcMessage == "4") { strAcMessage = "二维码扫描终端认证失败"; }
+		that->AddLog(CString(strAcMessage));
+		that->SetStatus(L"认证失败");
+		ENABLE_BUTTON;
+		that->SendTrayMessage(CString(strAcMessage), L"认证失败");
+		return 0;
+
+	} else {
+
+		size_t bufferLength = strRadiusMessage.GetLength() + 1;
+		char *szRadiusMessageBuffer = new char[bufferLength];
+		memset(szRadiusMessageBuffer, 0, bufferLength);
+		
+		base64_decode(strRadiusMessage.GetString(), (unsigned char *)szRadiusMessageBuffer, &bufferLength);
+		strRadiusMessage = szRadiusMessageBuffer;
+
+		delete[]szRadiusMessageBuffer;
+		
+		// 继续偷懒
+		#define AUTH_FAILED_RADIUS that->AddLog(CString(strRadiusMessage)); that->SetStatus(L"认证失败"); ENABLE_BUTTON; that->SendTrayMessage(CString(strRadiusMessage), L"认证失败"); return 0
+		//////////////////////////////////////////  AC给出错误的形式一 ////////////////////////////////////////////
+		
+		if (strRadiusMessage == "2") { strRadiusMessage = "终端IP已经在线"; AUTH_FAILED_RADIUS; }
+		if (strRadiusMessage == "3") { strRadiusMessage = "系统繁忙，请稍后再试"; AUTH_FAILED_RADIUS; }
+		if (strRadiusMessage == "4") { strRadiusMessage = "发生未知错误，请稍后再试"; AUTH_FAILED_RADIUS;}
+		if (strRadiusMessage == "5") { strRadiusMessage = "REQ_CHALLENGE失败，请联系AC确认"; AUTH_FAILED_RADIUS; }
+		if (strRadiusMessage == "6") { strRadiusMessage = "REQ_CHALLENGE超时，请联系AC确认"; AUTH_FAILED_RADIUS; }
+		if (strRadiusMessage == "7") { strRadiusMessage = "Radius认证失败"; AUTH_FAILED_RADIUS;}
+		if (strRadiusMessage == "8") { strRadiusMessage = "Radius认证超时"; AUTH_FAILED_RADIUS;}
+		if (strRadiusMessage == "9") { strRadiusMessage = "Radius下线失败"; AUTH_FAILED_RADIUS;}
+		if (strRadiusMessage == "10") { strRadiusMessage = "Radius下线超时"; AUTH_FAILED_RADIUS;}
+		if (strRadiusMessage == "11") { strRadiusMessage = "发生其他错误，请稍后再试"; AUTH_FAILED_RADIUS;}
+		if (strRadiusMessage == "998") { strRadiusMessage = "Portal协议参数不全，请稍后再试"; AUTH_FAILED_RADIUS;}
+
+		if (strRadiusMessage == "1" || strRadiusMessage == "512") { // 这两种情况，需要客户端去请求Radius，获得更详细的错误原因
+
+			that->AddLog(L"认证失败 (Radius 审核失败)");
+			that->AddLog(L">> 正在获取具体错误原因...");
+
+			CCurlTask getErrorDescReq;
+			getErrorDescReq.Exec("http://" + strPortalIP + "/errcode", false, postCookie);
+			CString strErrorMsg(getErrorDescReq.GetResultString());
+			if (strErrorMsg.Find(L"网络错误") != -1) { that->AddLog(strErrorMsg); that->SetStatus(L"网络错误"); ENABLE_BUTTON; return 0; }
+			std::string strErrorHtml = getErrorDescReq.GetResultString().GetString();
+
+			CStringA strErrDesc("未知的认证错误");
+			bValid = std::regex_search(strErrorHtml, matches, std::regex("Rpost=2;ret='(.*?)'"));
+			if (bValid && matches.size() == 2) { 
+				strErrDesc.Append(matches[1].str().c_str());
+				if (strErrDesc == "no errcode") { strErrDesc = "AC认证失败"; }
+				if (strErrDesc == "") { strErrDesc = "SESSION已过期,请重新登录"; }
+				if (strErrDesc == "Authentication Fail ErrCode=04") { strErrDesc = "上网时长/流量已到上限"; }
+				if (strErrDesc == "Authentication Fail ErrCode=05") { strErrDesc = "帐号已停机(欠费/报停)"; }
+			} else {
+				if (strErrorHtml.find("userid error1") != std::string::npos) { strErrDesc = "帐号不存在";  }
+				if (strErrorHtml.find("userid error2") != std::string::npos) { strErrDesc = "密码错误"; }
+				if (strErrorHtml.find("userid error3") != std::string::npos) { strErrDesc = "密码错误"; }
+				if (strErrorHtml.find("auth error") != std::string::npos) { strErrDesc = "用户验证失败"; }
+				if (strErrorHtml.find("auth error4") != std::string::npos) { strErrDesc = "用户使用量超出限制"; }
+				if (strErrorHtml.find("auth error5") != std::string::npos) { strErrDesc = "帐号已停机"; }
+				if (strErrorHtml.find("auth error9") != std::string::npos) { strErrDesc = "时长流量超支"; }
+				if (strErrorHtml.find("auth error80") != std::string::npos) { strErrDesc = "本时段禁止上网"; }
+				if (strErrorHtml.find("auth error99") != std::string::npos) { strErrDesc = "用户名或密码错误"; }
+				if (strErrorHtml.find("auth error198") != std::string::npos) { strErrDesc = "用户名或密码错误"; }
+				if (strErrorHtml.find("auth error199") != std::string::npos) { strErrDesc = "用户名或密码错误"; }
+				if (strErrorHtml.find("auth error258") != std::string::npos) { strErrDesc = "帐号只能在指定区域使用"; }
+				if (strErrorHtml.find("set_onlinet error") != std::string::npos) { strErrDesc = "用户数超过限制"; }
+				if (strErrorHtml.find("In use") != std::string::npos) { strErrDesc = "登录超过人数限制"; }
+				if (strErrorHtml.find("port err") != std::string::npos) { strErrDesc = "上课时间不允许上网"; }
+				if (strErrorHtml.find("can not use static ip") != std::string::npos) { strErrDesc = "不允许使用静态IP"; }
+				if (strErrorHtml.find("set_onlinet error") != std::string::npos) { strErrDesc = "用户数超过限制"; }
+				if (strErrorHtml.find("err(3)") != std::string::npos) { strErrDesc = "请在指定的IP登录"; }
+				if (strErrorHtml.find("err(7)") != std::string::npos) { strErrDesc = "请在指定的登录源VLAN范围登录"; }
+				if (strErrorHtml.find("err(10)") != std::string::npos) { strErrDesc = "请在指定的VLAN登录"; }
+				if (strErrorHtml.find("err(11)") != std::string::npos) { strErrDesc = "请在指定的MAC登录"; }
+				if (strErrorHtml.find("err(17)") != std::string::npos) { strErrDesc = "请在指定的设备端口登录"; }
+			}
+
+			that->AddLog(CString(strErrDesc));
+			that->SetStatus(L"认证失败");
+			ENABLE_BUTTON;
+			that->SendTrayMessage(CString(strErrDesc), L"认证失败");
+			return 0;
+		}
+
+		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		
+		//////////////////////////////////////////  AC给出错误的形式二 ////////////////////////////////////////////
+		
+		if (strRadiusMessage == "no errcode") { strRadiusMessage = "AC认证失败"; }
+		if (strRadiusMessage == "") { strRadiusMessage = "SESSION已过期,请重新登录"; }
+		if (strRadiusMessage == "Authentication Fail ErrCode=04") { strRadiusMessage = "上网时长/流量已到上限"; }
+		if (strRadiusMessage == "Authentication Fail ErrCode=05") { strRadiusMessage = "帐号已停机(欠费/报停)"; }
+		if (strRadiusMessage == "userid error1") { strRadiusMessage = "帐号不存在"; }
+		if (strRadiusMessage == "userid error2") { strRadiusMessage = "密码错误"; }
+		if (strRadiusMessage == "userid error3") { strRadiusMessage = "密码错误"; }
+		if (strRadiusMessage == "auth error") { strRadiusMessage = "用户验证失败"; }
+		if (strRadiusMessage == "auth error4") { strRadiusMessage = "用户使用量超出限制"; }
+		if (strRadiusMessage == "auth error5") { strRadiusMessage = "帐号已停机"; }
+		if (strRadiusMessage == "auth error9") { strRadiusMessage = "时长流量超支"; }
+		if (strRadiusMessage == "auth error80") { strRadiusMessage = "本时段禁止上网"; }
+		if (strRadiusMessage == "auth error99") { strRadiusMessage = "用户名或密码错误"; }
+		if (strRadiusMessage == "auth error198") { strRadiusMessage = "用户名或密码错误"; }
+		if (strRadiusMessage == "auth error199") { strRadiusMessage = "用户名或密码错误"; }
+		if (strRadiusMessage == "auth error258") { strRadiusMessage = "帐号只能在指定区域使用"; }
+		if (strRadiusMessage == "set_onlinet error") { strRadiusMessage = "用户数超过限制"; }
+		if (strRadiusMessage == "In use") { strRadiusMessage = "登录超过人数限制"; }
+		if (strRadiusMessage == "port err") { strRadiusMessage = "上课时间不允许上网"; }
+		if (strRadiusMessage == "can not use static ip") { strRadiusMessage = "不允许使用静态IP"; }
+		if (strRadiusMessage == "set_onlinet error") { strRadiusMessage = "用户数超过限制"; }
+		if (strRadiusMessage == "err(3)") { strRadiusMessage = "请在指定的IP登录"; }
+		if (strRadiusMessage == "err(7)") { strRadiusMessage = "请在指定的登录源VLAN范围登录"; }
+		if (strRadiusMessage == "err(10)") { strRadiusMessage = "请在指定的VLAN登录"; }
+		if (strRadiusMessage == "err(11)") { strRadiusMessage = "请在指定的MAC登录"; }
+		if (strRadiusMessage == "err(17)") { strRadiusMessage = "请在指定的设备端口登录"; }
+
+		AUTH_FAILED_RADIUS;
+	}
+
+	BUTTON_ONLINE;
+	that->SendTrayMessage(CString(L"当前IP: " + CString(strUserIP)), L"校园网 现在已连接");
+	return 0;
+}
+
+// 断开上网
+unsigned __stdcall CGLCampusNetworkUnofficialClientDlg::Logout(void *pThis)
+{
+	CGLCampusNetworkUnofficialClientDlg *that = static_cast<CGLCampusNetworkUnofficialClientDlg *>(pThis);
+	
+	// 套用登出URL
+	CStringA strLogoutURL(that->strLogoutURL);
+	// 补全 WLAN AC IP
+	strLogoutURL.Append(CStringA(that->strWlanAcIp));
+
+	CStringA strCookie(that->strCookie);
+	CStringA strPhpSessId("PHPSESSID=");
+	strPhpSessId.Append(that->strSessionId + ";\x20");
+	strCookie.Insert(0, strPhpSessId);
+
+	// 发送断线请求
+	CCurlTask req;
+	req.SetReferer(CStringA(that->strReferer));
+	req.Exec(strLogoutURL, false, strCookie, true, "");
+
+	int iPos = req.GetResultString().Find("Logout succeed.");
+	if (iPos != -1)
+	{
+		that->AddLog(L"断开成功, 已经成功下线");
+		that->SetStatus(L"未连接");
+	} else {
+		that->AddLog(L"下线失败...");
+		that->SetStatus(L"未连接");
+	}
+
+	if (that->hShutdownLogoutThread) { ::CloseHandle(that->hShutdownLogoutThread); that->hShutdownLogoutThread = NULL; }
 	return 0;
 }
 
@@ -349,7 +640,16 @@ void CGLCampusNetworkUnofficialClientDlg::SetStatus(CString strLog) {
 // 退出按钮被单击
 void CGLCampusNetworkUnofficialClientDlg::OnBnClickedCancel()
 {
-	CDialogEx::OnCancel(); // 其实只需要退出了
+	CString strBuffer;
+	this->statusBox->GetWindowText(strBuffer);
+	if (strBuffer == L"状态: 已连接上" && this->IsWindowVisible()) {
+		if (::MessageBox(this->m_hWnd, L"已经连上网络。\r\n是否仍然需要退出？退出后网络将会断开。", L"退出确认", MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
+		{
+			CDialogEx::OnCancel(); // 关闭对话框(取消)
+		}
+	} else {
+		CDialogEx::OnCancel(); // 关闭对话框(取消)
+	}
 }
 
 // 关于对话框中确定按钮被单击
@@ -387,10 +687,39 @@ void CGLCampusNetworkUnofficialClientDlg::OnSize(UINT nType, int cx, int cy)
 	}
 }
 
+// 主窗口关闭事件
+void CGLCampusNetworkUnofficialClientDlg::OnClose()
+{
+	CString strBuffer;
+	this->statusBox->GetWindowText(strBuffer);
+	if (strBuffer == L"状态: 已连接上" && this->IsWindowVisible()) {
+		this->ShowWindow(SW_HIDE);
+		return;
+	}
+	if (strBuffer == L"状态: 已连接上") {
+		if (::MessageBox(this->m_hWnd, L"已经连上网络。\r\n是否仍然需要退出？退出后网络将会断开。", L"退出确认", MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
+		{
+			CDialog::OnClose();
+		}
+	} else {
+	
+		CDialog::OnClose();
+	}
+}
+
 // 主窗口销毁时事件
 void CGLCampusNetworkUnofficialClientDlg::OnDestroy()
 {
 	this->deleteTray();
+	CString strBuffer;
+	this->statusBox->GetWindowText(strBuffer);
+	if (strBuffer == L"状态: 已连接上") {
+		this->OnBnClickedLogout();
+	}
+	if (strBuffer == L"状态: 已连接上" || this->hShutdownLogoutThread) {
+		this->ShowWindow(SW_HIDE);
+		::WaitForSingleObject(this->hShutdownLogoutThread, 5000); // 退出时，先隐藏界面，然后等待断线线程执行，如果线程超时，直接退出
+	}
 	CDialog::OnDestroy();
 }
 
@@ -417,7 +746,7 @@ LRESULT CGLCampusNetworkUnofficialClientDlg::OnShowTray(WPARAM wParam, LPARAM lP
 	if (wParam != IDR_MAINFRAME) return 1;
 	switch (lParam)
 	{
-		case WM_LBUTTONUP: // 左击
+		case WM_LBUTTONUP: case WM_LBUTTONDBLCLK: // 左击和双击
 		{
 			this->ShowWindow(SW_RESTORE);
 			SetForegroundWindow();
@@ -425,11 +754,31 @@ LRESULT CGLCampusNetworkUnofficialClientDlg::OnShowTray(WPARAM wParam, LPARAM lP
 		break;
 		case WM_RBUTTONUP: // 右击
 		{
-		}
-		break;
-		case WM_LBUTTONDBLCLK: // 双击
-		{
-			
+			LPPOINT lpoint = new tagPOINT;
+			::GetCursorPos(lpoint);
+			CMenu menu;
+			menu.CreatePopupMenu();
+			menu.AppendMenu(MFT_STRING, IDR_SHOW, L"显示主界面...(&S)");
+			CString strAboutDialogStr;
+			BOOL bNameValid = strAboutDialogStr.LoadString(IDS_ABOUTBOX);
+			ASSERT(bNameValid);
+			menu.AppendMenu(MFT_STRING, IDM_ABOUTBOX, strAboutDialogStr);
+			menu.AppendMenu(MFT_SEPARATOR);
+			menu.AppendMenu(MFT_STRING, IDR_EXIT, L"退出...(&E)");
+			int iOptId = ::TrackPopupMenu(menu, TPM_RETURNCMD, lpoint->x, lpoint->y, NULL, this->m_hWnd, NULL);
+			switch (iOptId) {
+				case IDR_SHOW: this->ShowWindow(SW_RESTORE); this->SetForegroundWindow(); break;
+				case IDM_ABOUTBOX: {
+					CAboutDlg dlgAbout;
+					dlgAbout.DoModal();
+					break;
+				}
+				case IDR_EXIT: this->ShowWindow(SW_HIDE); this->SendMessage(WM_CLOSE); break;
+				default: break;
+			}
+			HMENU hMenu = menu.Detach();
+			menu.DestroyMenu();
+			delete lpoint;
 		}
 		break;
 	}
@@ -453,7 +802,7 @@ void CGLCampusNetworkUnofficialClientDlg::deleteTray()
 }
 
 // 发送托盘信息
-void CGLCampusNetworkUnofficialClientDlg::SendTrayMessage(CString & strMsg)
+void CGLCampusNetworkUnofficialClientDlg::SendTrayMessage(CString & strMsg, CString strTitle)
 {
 	NOTIFYICONDATA nid;
 	memset(&nid, 0, sizeof(NOTIFYICONDATA));
@@ -466,7 +815,24 @@ void CGLCampusNetworkUnofficialClientDlg::SendTrayMessage(CString & strMsg)
 	nid.uCallbackMessage = WM_SHOWTRAY;
 	nid.hIcon = LoadIcon(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDR_MAINFRAME));
 	wcscpy_s(nid.szTip, 128, L"广陵校园网客户端");
-	wcscpy_s(nid.szInfoTitle, 64, L"提示");				// 气泡标题
+	wcscpy_s(nid.szInfoTitle, 64, strTitle);			// 气泡标题
 	wcscpy_s(nid.szInfo, 256, strMsg);					// 气泡内容
 	Shell_NotifyIcon(NIM_MODIFY, &nid);
+}
+
+// 断开按钮被单击事件
+void CGLCampusNetworkUnofficialClientDlg::OnBnClickedLogout()
+{
+	((CEdit*)GetDlgItem(IDC_EDIT1))->EnableWindow(TRUE);
+	((CEdit*)GetDlgItem(IDC_EDIT2))->EnableWindow(TRUE);
+	((CButton*)GetDlgItem(IDOK))->EnableWindow(TRUE);
+	((CButton*)GetDlgItem(IDOK))->ShowWindow(TRUE);
+	((CButton*)GetDlgItem(IDLOGOUT))->ShowWindow(FALSE);
+
+	this->SetStatus(CString(L"正在断开..."));
+	this->AddLog(CString(L"正在断开..."));
+
+	unsigned int tid = 0;
+	if (this->hShutdownLogoutThread) ::CloseHandle(this->hShutdownLogoutThread);
+	this->hShutdownLogoutThread = (HANDLE)::_beginthreadex(NULL, 0, CGLCampusNetworkUnofficialClientDlg::Logout, this, 0, &tid);
 }

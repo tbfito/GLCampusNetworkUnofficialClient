@@ -2,6 +2,8 @@
 // Microsoft Visual C++ 生成的包含文件。
 // 供 GLCampusNetworkUnofficialClient.rc 使用
 //
+#define IDOK2                           3
+#define IDLOGOUT                        3
 #define IDM_ABOUTBOX                    0x0010
 #define IDD_ABOUTBOX                    100
 #define IDS_ABOUTBOX                    101

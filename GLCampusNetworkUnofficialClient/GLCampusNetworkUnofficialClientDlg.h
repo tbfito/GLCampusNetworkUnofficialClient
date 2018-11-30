@@ -5,10 +5,9 @@
 #pragma once
 
 // 托盘图标自定义宏
-#define WM_SHOWTRAY (WM_USER +1)
-#define IDR_SHOW 11
-#define IDR_OTHER 12
-#define IDR_EXIT 13
+#define WM_SHOWTRAY (WM_USER + 1)
+#define IDR_SHOW 1001
+#define IDR_EXIT 1002
 
 // CGLCampusNetworkUnofficialClientDlg 对话框
 class CGLCampusNetworkUnofficialClientDlg : public CDialogEx
@@ -23,14 +22,23 @@ public:
 	void LoadConfiguration();												// 加载设置
 	void SaveConfiguration();												// 保存设置(内部会再次调用加载设置)
 	static unsigned __stdcall Login(void *pThis);							// 认证上网
+	static unsigned __stdcall Logout(void *pThis);							// 断开上网
 	CString strId, strPassword;												// 学号密码
 	bool bAutoRun, bAutoAuth, bAutoHide;									// 选项设置
 	void toTray();															// 最小化到托盘
 	void deleteTray();														// 删除托盘图标
-	void SendTrayMessage(CString & strMsg);									// 发送托盘信息
+	void SendTrayMessage(CString & strMsg, CString strTitle = L"提示");		// 发送托盘信息
 	afx_msg LRESULT OnShowTray(WPARAM wParam, LPARAM lParam);				// 图标恢复
 	void OnSize(UINT nType, int cx, int cy);								// 主窗口大小以及状态发生变化
-	void OnDestroy();														// 主窗口销毁
+	void OnDestroy();														// 主窗口将被销毁
+	void OnClose();															// 主窗口可否销毁
+	// 以下为登录后记录的变量，为注销服务
+	CString strWlanAcIp;													// AC(接入控制器)的IP，登录后再能看到
+	CString strCookie;														// 会话Cookie
+	CString strLogoutURL;													// 断线URL (用的时候要补一个 strWlanAcIp)
+	HANDLE  hShutdownLogoutThread = NULL;									// 断线线程句柄
+	CString strSessionId;													// 认证会话ID
+	CString strReferer;														// 认证来路 (断线时提供此 Referer)
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME
@@ -57,4 +65,5 @@ public:
 	afx_msg void OnIdcEdit1Click();
 	afx_msg void OnIdcEdit2Click();
 	afx_msg void OnIdcEdit3Click();
+	afx_msg void OnBnClickedLogout();
 };
