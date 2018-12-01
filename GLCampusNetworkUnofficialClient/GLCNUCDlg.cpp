@@ -616,7 +616,6 @@ unsigned __stdcall CGLCNUCDlg::Login(void *pThis)
 	that->SendTrayMessage(CString(_T("当前IP: ") + CString(strUserIP)), _T("校园网 现在已连接"));
 	unsigned int tid = 0;
 	HANDLE hThread = (HANDLE)::_beginthreadex(NULL, 0, CGLCNUCDlg::AccountInfo, pThis, 0, &tid);
-	// 关闭线程句柄以防泄露，因为下面不需要再操作这个线程了
 	::CloseHandle(hThread);
 	return 0;
 }
@@ -658,18 +657,24 @@ unsigned __stdcall CGLCNUCDlg::Logout(void *pThis)
 // 查询余额
 unsigned __stdcall CGLCNUCDlg::AccountInfo(void *pThis)
 {
+
 	CGLCNUCDlg *that = static_cast<CGLCNUCDlg *>(pThis);
+
+	// 别问为什么要睡眠15秒....
+	that->AddLog(L"休眠15秒, 查询余额信息...");
+	::Sleep(15000);
 
 	// 登录自助服务系统
 	CString strSelfServiceSystem(that->strSelfSystemURL);
+	static const char *szAccountServerPage = "/Self/nav_login";
 	static const char *szAccountServerLogin = "/Self/LoginAction.action";
 	static const char *szRandomCode = "/Self/RandomCodeAction.action";
 	static const char *szAccountInfo = "/Self/refreshaccount";
 	static const char *szLogout = "/Self/LogoutAction.action";
 
 	CCurlTask req;
-	if (req.Exec(CStringA(strSelfServiceSystem) + szAccountServerLogin)) {
-	
+	if (req.Exec(CStringA(strSelfServiceSystem) + szAccountServerPage)) {
+
 		CString strResp(req.GetResultString());
 		std::smatch matches;
 		#ifdef _UNICODE
@@ -677,6 +682,7 @@ unsigned __stdcall CGLCNUCDlg::AccountInfo(void *pThis)
 		#else
 			std::string stdStrResp(strResp.GetString());
 		#endif
+
 		bool bValid = std::regex_search(stdStrResp, matches, std::regex("checkcode=['|\"](.*?)['|\"]"));
 		if (bValid && matches.size() == 2 && matches[1].str().length()) {
 			
@@ -685,7 +691,7 @@ unsigned __stdcall CGLCNUCDlg::AccountInfo(void *pThis)
 			CStringA strSession("JSESSIONID=");
 			strSession.Append(_COOKIE(req.GetHeaderString().GetString(), "JSESSIONID").c_str());
 			CStringA strPassword(that->strPassword.GetString());
-			
+
 			if (req.Exec(CStringA(strSelfServiceSystem) + szRandomCode, false, strSession)) {
 
 				char *szMd5Buffer = new char[33];
@@ -696,14 +702,14 @@ unsigned __stdcall CGLCNUCDlg::AccountInfo(void *pThis)
 
 				CStringA postData("account=");
 				postData.Append(that->strId + "&password=" + strPassword + "&code=&checkcode=" + CStringA(strCheckcode) + "&Submit=%E7%99%BB+%E5%BD%95");
-
+				that->AddLog(CString(postData));
 				CCurlTask req2;
 				if (req2.Exec(CStringA(strSelfServiceSystem) + szAccountServerLogin, false, strSession, true, postData)) {
-
+					
 					// 获取帐户信息
 					CCurlTask req3;
 					if (req3.Exec(CStringA(strSelfServiceSystem) + szAccountInfo, false, strSession)) {
-
+						
 						CString strLeftMoney, strService, strStatus, strWelcome;
 						std::string strAccountInfo(req3.GetResultString().GetString());
 
@@ -718,19 +724,19 @@ unsigned __stdcall CGLCNUCDlg::AccountInfo(void *pThis)
 						if (bValid && matches.size() == 2 && matches[1].str().length()) { strWelcome = Utf82Unicode(matches[1].str().c_str()); }
 
 						// 登出自助系统，发出帐号信息通知
-						if (req3.Exec(CStringA(strSelfServiceSystem) + szLogout, false, strSession)) {
-
-							that->AddLog(_T(">> 用户: ") + strWelcome);
-							that->AddLog(_T(">> 套餐: ") + strService);
-							that->AddLog(_T(">> 状态: ") + strStatus);
-							that->AddLog(_T(">> 余额: ") + strLeftMoney);
-							that->SendTrayMessage(_T("用户: ") + strWelcome + _T("\r\n") + _T("套餐: ") + strService + _T("\r\n") + _T("状态: ") + strStatus + _T("\r\n") + _T("余额: ") + strLeftMoney, _T("帐户信息"));
-						}
+						req3.Exec(CStringA(strSelfServiceSystem) + szLogout, false, strSession);
+						that->AddLog(_T(">> 用户: ") + strWelcome);
+						that->AddLog(_T(">> 套餐: ") + strService);
+						that->AddLog(_T(">> 状态: ") + strStatus);
+						that->AddLog(_T(">> 余额: ") + strLeftMoney);
+						that->SendTrayMessage(_T("用户: ") + strWelcome + _T("\r\n") + _T("套餐: ") + strService + _T("\r\n") + _T("状态: ") + strStatus + _T("\r\n") + _T("余额: ") + strLeftMoney, _T("帐户信息"));
+						return 0;
 					}
 				}
 			}
 		}
 	}
+	that->AddLog(_T(">> 查询用户信息失败...(不影响网络使用)"));
 	return 0;
 }
 
