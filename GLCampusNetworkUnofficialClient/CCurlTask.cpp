@@ -46,6 +46,8 @@ bool CCurlTask::Exec(CStringA url, bool headonly, CStringA cookie, bool isPOST, 
 	{
 		return false;
 	}
+	header.Empty();
+	result.Empty();
 	if (headonly)
 	{
 		curl_easy_setopt(curl, CURLOPT_HEADER, true);
@@ -68,7 +70,7 @@ bool CCurlTask::Exec(CStringA url, bool headonly, CStringA cookie, bool isPOST, 
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, this->curl_receive);
 	curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, this->curl_header);
 	curl_easy_setopt(curl, CURLOPT_URL, url.GetString());
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, "iEdon-GLCampusNetworkUnofficialClient/1.0");
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, "iEdon-GLCNUC/1.0");
 	curl_easy_setopt(curl, CURLOPT_CRLF, 1L);
 	struct curl_slist *list = NULL;
 	list = curl_slist_append(list, "Pragma: no-cache");

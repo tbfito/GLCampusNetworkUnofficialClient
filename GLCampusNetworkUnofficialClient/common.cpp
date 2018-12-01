@@ -3,7 +3,7 @@
 
 #ifdef __IEDON_DEBUG__
 // ²âÊÔÓÃÀý
-const char *FUCK = "\
+const char *TEST = "\
 <!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\"> \
 <html xmlns=\"http://www.w3.org/1999/xhtml\"> \
 <head> \
@@ -312,5 +312,18 @@ std::string _COOKIE(const std::string & cookie, const char *name)
 	{
 		ret = cookie.substr(pos1 + len, pos2 - pos1 - len);
 	}
+	return ret;
+}
+
+// UTF-8 ×ª Unicode
+CStringW Utf82Unicode(const char* utf)
+{
+	int dwUnicodeLen = MultiByteToWideChar(CP_UTF8, 0, utf, -1, NULL, 0);
+	size_t num = dwUnicodeLen * sizeof(wchar_t);
+	wchar_t *pwText = new wchar_t(num);
+	memset(pwText, 0, num);
+	MultiByteToWideChar(CP_UTF8, 0, utf, -1, pwText, dwUnicodeLen);
+	CStringW ret(pwText);
+	delete[]pwText;
 	return ret;
 }

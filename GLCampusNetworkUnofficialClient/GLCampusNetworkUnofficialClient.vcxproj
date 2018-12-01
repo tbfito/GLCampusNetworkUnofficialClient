@@ -23,7 +23,7 @@
     <ProjectGuid>{108602D8-25EE-43B7-8799-43CD5593A76E}</ProjectGuid>
     <Keyword>MFCProj</Keyword>
     <RootNamespace>GLCampusNetworkUnofficialClient</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>7.0</WindowsTargetPlatformVersion>
     <ProjectName>GLCNUC</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -89,7 +89,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -111,7 +111,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -133,7 +133,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -162,7 +162,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -189,8 +189,9 @@
   <ItemGroup>
     <ClInclude Include="CCurlTask.h" />
     <ClInclude Include="common.h" />
-    <ClInclude Include="GLCampusNetworkUnofficialClient.h" />
-    <ClInclude Include="GLCampusNetworkUnofficialClientDlg.h" />
+    <ClInclude Include="GLCNUC.h" />
+    <ClInclude Include="GLCNUCDlg.h" />
+    <ClInclude Include="md5.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
@@ -198,8 +199,9 @@
   <ItemGroup>
     <ClCompile Include="CCurlTask.cpp" />
     <ClCompile Include="common.cpp" />
-    <ClCompile Include="GLCampusNetworkUnofficialClient.cpp" />
-    <ClCompile Include="GLCampusNetworkUnofficialClientDlg.cpp" />
+    <ClCompile Include="GLCNUC.cpp" />
+    <ClCompile Include="GLCNUCDlg.cpp" />
+    <ClCompile Include="md5.c" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -208,13 +210,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="GLCampusNetworkUnofficialClient.rc" />
+    <ResourceCompile Include="GLCNUC.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\GLCampusNetworkUnofficialClient.rc2" />
+    <None Include="res\GLCNUC.rc2" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="res\GLCampusNetworkUnofficialClient.ico" />
+    <Image Include="res\GLCNUC.ico" />
     <Image Include="res\LOGO.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

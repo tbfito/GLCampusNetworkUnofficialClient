@@ -15,12 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GLCampusNetworkUnofficialClient.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="GLCampusNetworkUnofficialClientDlg.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="stdafx.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -36,14 +30,17 @@
     <ClInclude Include="CCurlTask.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="md5.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="GLCNUC.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="GLCNUCDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GLCampusNetworkUnofficialClient.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="GLCampusNetworkUnofficialClientDlg.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -53,23 +50,32 @@
     <ClCompile Include="CCurlTask.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="md5.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GLCNUC.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GLCNUCDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="GLCampusNetworkUnofficialClient.rc">
+    <Image Include="res\LOGO.bmp">
       <Filter>资源文件</Filter>
-    </ResourceCompile>
+    </Image>
+    <Image Include="res\GLCNUC.ico">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\GLCampusNetworkUnofficialClient.rc2">
+    <None Include="res\GLCNUC.rc2">
       <Filter>资源文件</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="res\GLCampusNetworkUnofficialClient.ico">
+    <ResourceCompile Include="GLCNUC.rc">
       <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\LOGO.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

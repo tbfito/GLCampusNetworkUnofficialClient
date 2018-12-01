@@ -1,5 +1,5 @@
 ﻿
-// GLCampusNetworkUnofficialClientDlg.h: 头文件
+// GLCNUCDlg.h: 头文件
 //
 
 #pragma once
@@ -9,12 +9,12 @@
 #define IDR_SHOW 1001
 #define IDR_EXIT 1002
 
-// CGLCampusNetworkUnofficialClientDlg 对话框
-class CGLCampusNetworkUnofficialClientDlg : public CDialogEx
+// CGLCNUCDlg 对话框
+class CGLCNUCDlg : public CDialogEx
 {
 // 构造
 public:
-	CGLCampusNetworkUnofficialClientDlg(CWnd* pParent = nullptr);			// 标准构造函数
+	CGLCNUCDlg(CWnd* pParent = nullptr);			// 标准构造函数
 	CListBox* listBox = nullptr;
 	CStatic* statusBox = nullptr;
 	void AddLog(CString strLog);											// 向列表框增加日志
@@ -23,11 +23,12 @@ public:
 	void SaveConfiguration();												// 保存设置(内部会再次调用加载设置)
 	static unsigned __stdcall Login(void *pThis);							// 认证上网
 	static unsigned __stdcall Logout(void *pThis);							// 断开上网
-	CString strId, strPassword;												// 学号密码
+	static unsigned	__stdcall AccountInfo(void *pThis);						// 帐号余额
+	CString strId, strPassword, strSelfSystemURL;							// 帐号密码，自助系统URL(不含末尾/)
 	bool bAutoRun, bAutoAuth, bAutoHide;									// 选项设置
 	void toTray();															// 最小化到托盘
 	void deleteTray();														// 删除托盘图标
-	void SendTrayMessage(CString & strMsg, CString strTitle = L"提示");		// 发送托盘信息
+	void SendTrayMessage(CString & strMsg, CString strTitle = _T("提示"));		// 发送托盘信息
 	afx_msg LRESULT OnShowTray(WPARAM wParam, LPARAM lParam);				// 图标恢复
 	void OnSize(UINT nType, int cx, int cy);								// 主窗口大小以及状态发生变化
 	void OnDestroy();														// 主窗口将被销毁
@@ -42,7 +43,7 @@ public:
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME
-	enum { IDD = IDD_GLCAMPUSNETWORKUNOFFICIALCLIENT_DIALOG };
+	enum { IDD = IDD_GLCNUC_DIALOG };
 #endif
 
 	protected:
