@@ -659,9 +659,13 @@ unsigned __stdcall CGLCNUCDlg::AccountInfo(void *pThis)
 {
 
 	CGLCNUCDlg *that = static_cast<CGLCNUCDlg *>(pThis);
+	ULONG ulRetryCount = 0;
 
-	// 别问为什么要睡眠15秒....
-	that->AddLog(L"休眠15秒, 查询余额信息...");
+	// 为什么要这么写？因为刚认证上线后，不能立即访问自助服务，需要休眠一会，不然还会被重定向到认证页面。
+BEGIN:
+	ulRetryCount++;
+	if (ulRetryCount > 10) { that->AddLog(_T(">> 查询信息失败...(不影响网络使用)")); return 0; }
+	that->AddLog(_T(">> 线程开始, 等候查询余额信息..."));
 	::Sleep(15000);
 
 	// 登录自助服务系统
@@ -702,7 +706,7 @@ unsigned __stdcall CGLCNUCDlg::AccountInfo(void *pThis)
 
 				CStringA postData("account=");
 				postData.Append(that->strId + "&password=" + strPassword + "&code=&checkcode=" + CStringA(strCheckcode) + "&Submit=%E7%99%BB+%E5%BD%95");
-				that->AddLog(CString(postData));
+
 				CCurlTask req2;
 				if (req2.Exec(CStringA(strSelfServiceSystem) + szAccountServerLogin, false, strSession, true, postData)) {
 					
@@ -736,7 +740,8 @@ unsigned __stdcall CGLCNUCDlg::AccountInfo(void *pThis)
 			}
 		}
 	}
-	that->AddLog(_T(">> 查询用户信息失败...(不影响网络使用)"));
+
+	goto BEGIN;
 	return 0;
 }
 
