@@ -256,7 +256,7 @@ void CGLCNUCDlg::SaveConfiguration() {
 	((CEdit*)GetDlgItem(IDC_EDIT2))->GetWindowText(this->strPassword);
 
 	WritePrivateProfileString(_T("Config"), _T("strId"), this->strId, this->ConfigPath);
-	WritePrivateProfileString(_T("Config"), _T("strSelfSystemURL"), this->strSelfSystemURL,  _T(".\\Config.ini"));
+	WritePrivateProfileString(_T("Config"), _T("strSelfSystemURL"), this->strSelfSystemURL, this->ConfigPath);
 
 	char *szBuffer = new char[128];
 	char *szBufferEncoded = new char[512];
