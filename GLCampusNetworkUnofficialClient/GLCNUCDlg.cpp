@@ -49,6 +49,22 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 	ON_BN_CLICKED(IDOK, &CAboutDlg::OnBnClickedOk)
 END_MESSAGE_MAP()
 
+CString& CGLCNUCDlg::SetConfigPath()
+{
+	HMODULE hModule = GetModuleHandle(NULL);
+	TCHAR tcFileName[MAX_PATH];
+	GetModuleFileName(hModule, tcFileName, MAX_PATH);
+	CString csFullPath(tcFileName);
+	int nPos = csFullPath.ReverseFind(_T('\\'));
+	if (nPos < 0)
+		this->ConfigPath = _T(".\\Config.ini");
+	else
+	{
+		this->ConfigPath = csFullPath.Left(nPos);
+		this->ConfigPath.Append(_T("\\Config.ini"));
+	}
+	return this->ConfigPath;
+}
 
 // CGLCNUCDlg 对话框构造
 CGLCNUCDlg::CGLCNUCDlg(CWnd* pParent /*=nullptr*/)
@@ -82,6 +98,7 @@ END_MESSAGE_MAP()
 // CGLCNUCDlg 消息处理程序
 BOOL CGLCNUCDlg::OnInitDialog()
 {
+	this->SetConfigPath();
 	CDialogEx::OnInitDialog();
 
 	// 将“关于...”菜单项添加到系统菜单中。
@@ -123,7 +140,7 @@ BOOL CGLCNUCDlg::OnInitDialog()
 
 	// 显示版本信息
 	CStringA appInfo;
-	appInfo.Format("广陵校园网客户端(非官方), %s", __DATE__);
+	appInfo.Format("iEdon 广陵校园网客户端, %s", __DATE__);
 	#ifdef _UNICODE
 		this->AddLog(CA2W(appInfo.GetString()).m_psz);
 	#else
@@ -188,21 +205,21 @@ HCURSOR CGLCNUCDlg::OnQueryDragIcon()
 // 加载配置
 void CGLCNUCDlg::LoadConfiguration() {
 
-	this->bAutoRun = GetPrivateProfileInt(_T("Config"), _T("bAutoRun"), 0, _T(".\\Config.ini"));
-	this->bAutoAuth = GetPrivateProfileInt(_T("Config"), _T("bAutoAuth"), 0, _T(".\\Config.ini"));
-	this->bAutoHide = GetPrivateProfileInt(_T("Config"), _T("bAutoHide"), 0, _T(".\\Config.ini"));
+	this->bAutoRun = GetPrivateProfileInt(_T("Config"), _T("bAutoRun"), 0, this->ConfigPath);
+	this->bAutoAuth = GetPrivateProfileInt(_T("Config"), _T("bAutoAuth"), 0, this->ConfigPath);
+	this->bAutoHide = GetPrivateProfileInt(_T("Config"), _T("bAutoHide"), 0, this->ConfigPath);
 	((CButton*)GetDlgItem(IDC_CHECK1))->SetCheck(bAutoRun);
 	((CButton*)GetDlgItem(IDC_CHECK2))->SetCheck(bAutoAuth);
 	((CButton*)GetDlgItem(IDC_CHECK3))->SetCheck(bAutoHide);
 
 	TCHAR *tcBuffer = new TCHAR[128];
-	GetPrivateProfileString(_T("Config"), _T("strId"), _T("160047199"), tcBuffer, 128, _T(".\\Config.ini"));
+	GetPrivateProfileString(_T("Config"), _T("strId"), _T("160047199"), tcBuffer, 128, this->ConfigPath);
 	this->strId = tcBuffer;
 
-	GetPrivateProfileString(_T("Config"), _T("strSelfSystemURL"), _T("http://10.0.120.100:8080"), tcBuffer, 128, _T(".\\Config.ini"));
+	GetPrivateProfileString(_T("Config"), _T("strSelfSystemURL"), _T("http://10.0.120.100:8080"), tcBuffer, 128, this->ConfigPath);
 	this->strSelfSystemURL = tcBuffer;
 
-	GetPrivateProfileString(_T("Config"), _T("strPassword"), _T("MTIzNDU"), tcBuffer, 128, _T(".\\Config.ini"));
+	GetPrivateProfileString(_T("Config"), _T("strPassword"), _T("MTIzNDU"), tcBuffer, 128, this->ConfigPath);
 	char *szBuffer = new char[128];
 	#ifdef _UNICODE
 		strcpy_s(szBuffer, 128, CW2A(tcBuffer).m_psz);
@@ -231,14 +248,14 @@ void CGLCNUCDlg::SaveConfiguration() {
 	this->bAutoAuth = ((CButton*)GetDlgItem(IDC_CHECK2))->GetCheck();
 	this->bAutoHide = ((CButton*)GetDlgItem(IDC_CHECK3))->GetCheck();
 
-	WritePrivateProfileString(_T("Config"), _T("bAutoRun"), this->bAutoRun ? _T("1") : _T("0"), _T(".\\Config.ini"));
-	WritePrivateProfileString(_T("Config"), _T("bAutoAuth"), this->bAutoAuth ? _T("1") : _T("0"), _T(".\\Config.ini"));
-	WritePrivateProfileString(_T("Config"), _T("bAutoHide"), this->bAutoHide ? _T("1") : _T("0"), _T(".\\Config.ini"));
+	WritePrivateProfileString(_T("Config"), _T("bAutoRun"), this->bAutoRun ? _T("1") : _T("0"), this->ConfigPath);
+	WritePrivateProfileString(_T("Config"), _T("bAutoAuth"), this->bAutoAuth ? _T("1") : _T("0"), this->ConfigPath);
+	WritePrivateProfileString(_T("Config"), _T("bAutoHide"), this->bAutoHide ? _T("1") : _T("0"), this->ConfigPath);
 
 	((CEdit*)GetDlgItem(IDC_EDIT1))->GetWindowText(this->strId);
 	((CEdit*)GetDlgItem(IDC_EDIT2))->GetWindowText(this->strPassword);
 
-	WritePrivateProfileString(_T("Config"), _T("strId"), this->strId, _T(".\\Config.ini"));
+	WritePrivateProfileString(_T("Config"), _T("strId"), this->strId, this->ConfigPath);
 	WritePrivateProfileString(_T("Config"), _T("strSelfSystemURL"), this->strSelfSystemURL,  _T(".\\Config.ini"));
 
 	char *szBuffer = new char[128];
@@ -250,9 +267,9 @@ void CGLCNUCDlg::SaveConfiguration() {
 	#endif
 	encodePassword((const unsigned char *)szBuffer, strlen(szBuffer), szBufferEncoded);
 	#ifdef _UNICODE
-		WritePrivateProfileString(_T("Config"), _T("strPassword"), CA2W(szBufferEncoded).m_psz, _T(".\\Config.ini"));
+		WritePrivateProfileString(_T("Config"), _T("strPassword"), CA2W(szBufferEncoded).m_psz, this->ConfigPath);
 	#else
-		WritePrivateProfileString(_T("Config"), _T("strPassword"), szBufferEncoded, _T(".\\Config.ini"));
+		WritePrivateProfileString(_T("Config"), _T("strPassword"), szBufferEncoded, this->ConfigPath);
 	#endif
 	
 	

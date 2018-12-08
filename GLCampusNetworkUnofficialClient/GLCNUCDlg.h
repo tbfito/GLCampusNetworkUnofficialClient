@@ -14,7 +14,9 @@ class CGLCNUCDlg : public CDialogEx
 {
 // 构造
 public:
-	CGLCNUCDlg(CWnd* pParent = nullptr);			// 标准构造函数
+	CGLCNUCDlg(CWnd* pParent = nullptr);									// 标准构造函数
+	CString ConfigPath;														// 配置文件路径
+	CString& SetConfigPath();												// 配置文件路径设置
 	CListBox* listBox = nullptr;
 	CStatic* statusBox = nullptr;
 	void AddLog(CString strLog);											// 向列表框增加日志

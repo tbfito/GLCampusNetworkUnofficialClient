@@ -11,7 +11,6 @@ BEGIN_MESSAGE_MAP(CGLCNUCApp, CWinApp)
 	ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
 END_MESSAGE_MAP()
 
-
 // CGLCNUCApp 构造
 CGLCNUCApp::CGLCNUCApp()
 {
@@ -27,6 +26,54 @@ CGLCNUCApp theApp;
 // CGLCNUCApp 初始化
 BOOL CGLCNUCApp::InitInstance()
 {
+	HANDLE hMutex = CreateMutex(NULL, FALSE, _T("__IEDON_GLCNUC_MUTEX__"));
+	if ((NULL != hMutex) && (ERROR_ALREADY_EXISTS == GetLastError()))
+	{
+		HWND hWnd = ::FindWindow(NULL, _T("广陵校园网客户端(非官方)"));
+		if (NULL != hWnd)
+		{
+			// 显示窗口
+			::ShowWindow(hWnd, SW_RESTORE);
+			::SetForegroundWindow(hWnd);
+			// 窗口抖动
+			const int ty = 5;
+			CRect m_rect;
+			CRect m_DeskRet;
+			::GetWindowRect(::GetDesktopWindow(), &m_DeskRet);
+			::GetWindowRect(hWnd, &m_rect);
+			int iXpos = m_DeskRet.Width() / 2 - m_rect.Width() / 2;
+			int iYpos = m_DeskRet.Height() / 2 - m_rect.Height() / 2;
+			::SetWindowPos(hWnd, NULL, iXpos, iYpos, 0, 0, SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER);
+			::GetWindowRect(hWnd, &m_rect);
+			LONG recordy = m_rect.left;
+			LONG recordx = m_rect.top;
+			for (int i = 0; i < 3; i++)
+			{
+				m_rect.left = recordy;
+				m_rect.top = recordx;
+				m_rect.top = m_rect.top + ty;
+				m_rect.left = m_rect.left - ty;
+				::SetWindowPos(hWnd, NULL, m_rect.left, m_rect.top, 0, 0, SWP_NOSIZE); ::Sleep(25);
+				m_rect.top = m_rect.top - ty;
+				::SetWindowPos(hWnd, NULL, m_rect.left, m_rect.top, 0, 0, SWP_NOSIZE); ::Sleep(25);
+				m_rect.top = m_rect.top - 2 * ty;
+				::SetWindowPos(hWnd, NULL, m_rect.left, m_rect.top, 0, 0, SWP_NOSIZE); ::Sleep(25);
+				m_rect.left = m_rect.left + ty;
+				::SetWindowPos(hWnd, NULL, m_rect.left, m_rect.top, 0, 0, SWP_NOSIZE); ::Sleep(25);
+				m_rect.left = m_rect.left + 2 * ty;
+				::SetWindowPos(hWnd, NULL, m_rect.left, m_rect.top, 0, 0, SWP_NOSIZE); ::Sleep(25);
+				m_rect.top = m_rect.top + ty;
+				::SetWindowPos(hWnd, NULL, m_rect.left, m_rect.top, 0, 0, SWP_NOSIZE); ::Sleep(25);
+				m_rect.top = m_rect.top + 2 * ty;
+				::SetWindowPos(hWnd, NULL, m_rect.left, m_rect.top, 0, 0, SWP_NOSIZE);
+				::SetWindowPos(hWnd, NULL, recordy, recordx, 0, 0, SWP_NOSIZE);
+				::Sleep(25);
+			}
+		}
+		CloseHandle(hMutex);
+		return FALSE;
+	}
+
 	INITCOMMONCONTROLSEX InitCtrls;
 	InitCtrls.dwSize = sizeof(InitCtrls);
 	InitCtrls.dwICC = ICC_WIN95_CLASSES;
